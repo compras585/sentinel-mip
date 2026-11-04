@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  TECHNICIAN
+  CLIENT
+  HIGH_MANAGEMENT
+  QUALITY
+  OPERATIONS_MANAGEMENT
+  MARKETING_MANAGEMENT
+}
+
+enum InspectionStatus {
+  DRAFT
+  SUBMITTED
+  REVIEWED
+}
+
+enum FindingStatus {
+  OPEN
+  IN_PROGRESS
+  PENDING_VERIFICATION
+  CLOSED
+}
+
+model Tenant {
+  id             String          @id @default(uuid()) @db.Uuid
+  name           String
+  users          User[]
+  establishments Establishment[]
+  createdAt      DateTime        @default(now())
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String?  @db.Uuid
+  tenant       Tenant?  @relation(fields: [tenantId], references: [id])
+  email        String   @unique
+  passwordHash String
+  role         UserRole
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  inspections  Inspection[]
+  refreshSessions RefreshSession[]
+}
+
+model Establishment {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @db.Uuid
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  code        String   @unique
+  name        String
+  address     String?
+  stations    Station[]
+  createdAt   DateTime @default(now())
+}
+
+model Station {
+  id              String        @id @default(uuid()) @db.Uuid
+  establishmentId String        @db.Uuid
+  establishment   Establishment @relation(fields: [establishmentId], references: [id])
+  code            String        @unique
+  location        String?
+  active          Boolean       @default(true)
+  inspections     Inspection[]
+  createdAt       DateTime      @default(now())
+}
+
+model Inspection {
+  id               String           @id @default(uuid()) @db.Uuid
+  stationId        String           @db.Uuid
+  station          Station          @relation(fields: [stationId], references: [id])
+  technicianId     String           @db.Uuid
+  technician       User             @relation(fields: [technicianId], references: [id])
+  clientMutationId String
+  pestType         String
+  activity         String
+  quantity         Int              @default(0)
+  stationCondition String?
+  actionsTaken     String?
+  observations     String?
+  status           InspectionStatus @default(SUBMITTED)
+  createdAt        DateTime         @default(now())
+  @@unique([technicianId, clientMutationId])
+  @@index([stationId, createdAt])
+}
+
+model CorrectiveAction {
+  id             String        @id @default(uuid()) @db.Uuid
+  tenantId       String        @db.Uuid
+  finding        String
+  rootCause      String?
+  actionPlan     String
+  ownerUserId    String?       @db.Uuid
+  dueDate        DateTime?
+  status         FindingStatus @default(OPEN)
+  effectiveness String?
+  verifiedById   String?       @db.Uuid
+  verifiedAt     DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model Certificate {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @db.Uuid
+  establishmentId String @db.Uuid
+  certificateNo  String   @unique
+  status         String   @default("DRAFT")
+  issuedById     String?  @db.Uuid
+  issuedAt       DateTime?
+  documentHash   String?
+  createdAt      DateTime @default(now())
+}
+
+
+model RefreshSession {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime @default(now())
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+}

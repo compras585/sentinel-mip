@@ -1,0 +1,41 @@
+name: Backend CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    env:
+      DATABASE_URL: postgresql://sentinel:sentinel@localhost:5432/sentinel
+
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Instalar dependencias
+        run: npm install
+
+      - name: Generar cliente Prisma
+        run: npm run prisma:generate
+
+      - name: Revisar tipos
+        run: npm run typecheck
+
+      - name: Ejecutar pruebas
+        run: npm test -- --runInBand
+
+      - name: Compilar backend
+        run: npm run build

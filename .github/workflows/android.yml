@@ -35,7 +35,7 @@ jobs:
 
       - name: Compilar APK
         working-directory: android
-        run: gradle :app:assembleDebug -PSENTINEL_API_BASE_URL=https://api.example.invalid/api/
+        run: gradle :app:assembleDebug -PSENTINEL_API_BASE_URL="${{ vars.SENTINEL_API_BASE_URL }}"
 
       - name: Guardar APK generado
         uses: actions/upload-artifact@v4

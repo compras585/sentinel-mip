@@ -20,4 +20,4 @@ RUN npm run build
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "npx migrate deploy && npm run start"
+CMD ["npm", "run", "start"]
